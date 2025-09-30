@@ -1,0 +1,45 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="갤러리"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="16dp"/>
+
+    <Button
+        android:id="@+id/btnPickImages"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="이미지 선택"
+        android:layout_marginBottom="8dp"/>
+
+    <TextView
+        android:id="@+id/selectedImagesTextView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp"
+        android:text="선택된 이미지: 0개"
+        android:textColor="#FBFAFA"
+        android:textColorHighlight="@color/background_light"
+        android:textColorHint="@color/background_white" />
+
+    <Button
+        android:id="@+id/btnViewImages"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="이미지 보기"
+        android:layout_marginBottom="8dp"/>
+
+    <Button
+        android:id="@+id/btnClearImages"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="이미지 초기화"/>
+
+</LinearLayout> 

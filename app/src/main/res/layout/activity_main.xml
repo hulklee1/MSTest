@@ -1,0 +1,160 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@android:color/white"
+    android:orientation="vertical">
+
+    <!-- 상단: 사용자 정보 및 로그아웃 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="16dp"
+        android:gravity="center_vertical">
+
+        <TextView
+            android:id="@+id/tvUsername"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="환영합니다!"
+            android:textSize="18sp"
+            android:textColor="@android:color/black"
+            android:textStyle="bold" />
+
+        <Button
+            android:id="@+id/btnLogout"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="로그아웃"
+            android:textSize="14sp"
+            android:background="@android:color/holo_red_light"
+            android:textColor="@android:color/white"
+            android:padding="8dp" />
+
+    </LinearLayout>
+
+    <!-- 상부: 앱 로고 이미지 영역 (화면의 절반) -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:padding="32dp">
+
+        <ImageView
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:background="@android:color/transparent"
+            android:contentDescription="앱 로고"
+            android:scaleType="centerCrop"
+            android:src="@drawable/meun_bg" />
+
+    </LinearLayout>
+
+    <!-- 하부: 버튼 영역 (화면의 절반) -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:padding="24dp">
+
+        <!-- 첫 번째 행: 사진찍기, 갤러리 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/btnTakePhoto"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@android:color/white"
+                android:drawableTop="@drawable/menu_btn_1"
+                android:drawablePadding="4dp"
+                android:elevation="4dp"
+                android:gravity="center_horizontal|center_vertical"
+                android:minHeight="80dp"
+                android:padding="8dp"
+                android:stateListAnimator="@null"
+                android:text="@string/take_photo"
+                android:textColor="@android:color/black"
+                android:textSize="16sp" />
+
+            <Button
+                android:id="@+id/btnGallery"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_marginStart="8dp"
+                android:layout_weight="1"
+                android:background="@android:color/white"
+                android:drawableTop="@drawable/menu_btn_2"
+                android:drawablePadding="4dp"
+                android:elevation="4dp"
+                android:gravity="center_horizontal|center_vertical"
+                android:minHeight="80dp"
+                android:padding="8dp"
+                android:stateListAnimator="@null"
+                android:text="@string/gallery_title"
+                android:textColor="@android:color/black"
+                android:textSize="16sp" />
+
+        </LinearLayout>
+
+        <!-- 두 번째 행: 분석하기, 스캐닝 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_marginTop="16dp"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/btnAnalyze"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@android:color/white"
+                android:drawableTop="@drawable/menu_btn_3"
+                android:drawablePadding="4dp"
+                android:elevation="4dp"
+                android:gravity="center_horizontal|center_vertical"
+                android:minHeight="80dp"
+                android:padding="8dp"
+                android:stateListAnimator="@null"
+                android:text="@string/analyze_images"
+                android:textColor="@android:color/black"
+                android:textSize="16sp" />
+
+            <Button
+                android:id="@+id/btnScanning"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_marginStart="8dp"
+                android:layout_weight="1"
+                android:background="@android:color/white"
+                android:drawableTop="@drawable/menu_btn_4"
+                android:drawablePadding="4dp"
+                android:elevation="4dp"
+                android:gravity="center_horizontal|center_vertical"
+                android:minHeight="80dp"
+                android:padding="8dp"
+                android:stateListAnimator="@null"
+                android:text="상품관리"
+                android:textColor="@android:color/black"
+                android:textSize="16sp" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+</LinearLayout> 

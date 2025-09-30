@@ -1,0 +1,53 @@
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <!-- 카메라 프리뷰 -->
+    <androidx.camera.view.PreviewView
+        android:id="@+id/previewView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+    <!-- 하단 컨트롤 영역 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:orientation="horizontal"
+        android:padding="24dp"
+        android:gravity="center_vertical"
+        android:background="@drawable/camera_controls_background">
+
+        <!-- 갤러리 버튼 (좌측) -->
+        <ImageButton
+            android:id="@+id/btnGallery"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:src="@drawable/ic_gallery"
+            android:background="@drawable/circle_button_background"
+            android:scaleType="centerInside"
+            android:contentDescription="갤러리"
+            android:layout_marginStart="16dp" />
+
+        <!-- 촬영 버튼 (중앙) -->
+        <ImageButton
+            android:id="@+id/btnCapture"
+            android:layout_width="72dp"
+            android:layout_height="72dp"
+            android:src="@drawable/ic_camera"
+            android:background="@drawable/capture_button_background"
+            android:scaleType="centerInside"
+            android:contentDescription="사진 촬영"
+            android:layout_gravity="center"
+            android:layout_marginStart="0dp"
+            android:layout_marginEnd="0dp" />
+
+        <!-- 우측 여백 (균형을 위해) -->
+        <View
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginEnd="16dp" />
+
+    </LinearLayout>
+
+</RelativeLayout> 

@@ -1,0 +1,27 @@
+<resources>
+    <color name="purple_500">#6200EE</color>
+    <color name="purple_700">#3700B3</color>
+    <color name="teal_200">#03DAC5</color>
+    <color name="teal_700">#018786</color>
+    <color name="white">#FFFFFF</color>
+    <color name="black">#000000</color>
+    <color name="Custom">#1d7fff</color>
+    <color name="light_gray">#D3D3D3</color>
+    <color name="blue">#2196F3</color>
+    <color name="green">#4CAF50</color>
+    <color name="orange">#FF9800</color>
+    
+    <!-- 추가 색상 정의 -->
+    <color name="text_primary">#212121</color>
+    <color name="text_secondary">#757575</color>
+    <color name="text_tertiary">#9E9E9E</color>
+    <color name="text_dark">#000000</color>
+    <color name="text_light">#FFFFFF</color>
+    <color name="text_blue">#1976D2</color>
+    <color name="text_green">#388E3C</color>
+    <color name="text_orange">#F57C00</color>
+    <color name="text_red">#D32F2F</color>
+    <color name="background_light">#FAFAFA</color>
+    <color name="background_white">#FFFFFF</color>
+    <color name="border_gray">#E0E0E0</color>
+</resources> 
