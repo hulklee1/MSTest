@@ -10,39 +10,103 @@
         android:id="@+id/titleText"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="상품 선택"
+        android:text="상품 종류를 선택하세요"
         android:textSize="20sp"
         android:textStyle="bold"
         android:textColor="#333333"
         android:gravity="center"
-        android:layout_marginBottom="24dp"
+        android:layout_marginBottom="16dp"
         android:paddingTop="16dp"
         android:paddingBottom="16dp" />
 
+    <!-- 1단계: 상품 종류 선택 -->
     <TextView
+        android:id="@+id/tvStep1Title"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="전송할 상품을 선택해주세요"
-        android:textSize="14sp"
+        android:text="1단계: 상품 종류 선택"
+        android:textSize="16sp"
         android:textColor="#666666"
-        android:gravity="center"
-        android:layout_marginBottom="16dp" />
+        android:textStyle="bold"
+        android:layout_marginBottom="8dp" />
 
     <ScrollView
+        android:id="@+id/scrollViewStep1"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1"
+        android:layout_weight="0.4"
         android:background="#FAFAFA"
         android:padding="8dp">
 
         <RadioGroup
-            android:id="@+id/productRadioGroup"
+            android:id="@+id/radioGroupProductTypes"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
             android:padding="8dp" />
 
     </ScrollView>
+
+    <!-- 2단계: 구체적 상품 선택 -->
+    <TextView
+        android:id="@+id/tvStep2Title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="2단계: 구체적 상품 선택"
+        android:textSize="16sp"
+        android:textColor="#666666"
+        android:textStyle="bold"
+        android:layout_marginTop="16dp"
+        android:layout_marginBottom="8dp"
+        android:visibility="gone" />
+
+    <ScrollView
+        android:id="@+id/scrollViewStep2"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="0.4"
+        android:background="#FAFAFA"
+        android:padding="8dp"
+        android:visibility="gone">
+
+        <RadioGroup
+            android:id="@+id/radioGroupSpecificProducts"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="8dp" />
+
+    </ScrollView>
+
+    <!-- 선택된 상품 정보 표시 -->
+    <LinearLayout
+        android:id="@+id/layoutSelectedInfo"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:background="#F8F8F8"
+        android:padding="12dp"
+        android:layout_marginTop="16dp"
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/tvSelectedProductType"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="선택된 상품 종류: -"
+            android:textSize="14sp"
+            android:textColor="#333333" />
+
+        <TextView
+            android:id="@+id/tvSelectedProduct"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="선택된 상품: -"
+            android:textSize="14sp"
+            android:textColor="#333333"
+            android:layout_marginTop="4dp" />
+
+    </LinearLayout>
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -71,7 +135,8 @@
             android:textSize="16sp"
             android:textColor="#FFFFFF"
             android:background="#007AFF"
-            android:layout_marginStart="8dp" />
+            android:layout_marginStart="8dp"
+            android:enabled="false" />
 
     </LinearLayout>
 
