@@ -133,10 +133,9 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:layout_marginStart="8dp"
-            android:background="@android:color/holo_blue_bright"
             android:text="저장"
-            android:textColor="@android:color/white"
             android:textSize="16sp"
+            style="@style/BlueButton"
             android:padding="16dp"
             android:elevation="4dp" />
 

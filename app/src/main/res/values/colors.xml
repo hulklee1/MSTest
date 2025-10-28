@@ -24,4 +24,14 @@
     <color name="background_light">#FAFAFA</color>
     <color name="background_white">#FFFFFF</color>
     <color name="border_gray">#E0E0E0</color>
+    
+    <!-- 버튼 및 다이얼로그 개선 색상 -->
+    <color name="button_blue_primary">#2196F3</color>
+    <color name="button_blue_dark">#1976D2</color>
+    <color name="button_text_white">#FFFFFF</color>
+    <color name="dialog_background_light">#F5F5F5</color>
+    <color name="dialog_text_dark">#212121</color>
+    <color name="button_positive">#4CAF50</color>
+    <color name="button_negative">#F44336</color>
+    <color name="button_neutral">#757575</color>
 </resources> 

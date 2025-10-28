@@ -13,8 +13,9 @@ import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 
 class AnalysisResultAdapter(
-    private val results: List<AnalysisResult>,
-    private val onClassSelected: ((Int, String) -> Unit)? = null
+    private val results: MutableList<AnalysisResult>,
+    private val onClassSelected: ((Int, String) -> Unit)? = null,
+    private val onImageDeleted: ((Int) -> Unit)? = null
 ) : RecyclerView.Adapter<AnalysisResultAdapter.ViewHolder>() {
 
     inner class ViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
@@ -23,6 +24,7 @@ class AnalysisResultAdapter(
         val confidenceText: TextView = itemView.findViewById(R.id.confidenceText)
         val classSpinner: Spinner = itemView.findViewById(R.id.classSpinner)
         val statusText: TextView = itemView.findViewById(R.id.statusText)
+        val deleteButton: ImageView? = itemView.findViewById(R.id.deleteButton)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
@@ -41,6 +43,14 @@ class AnalysisResultAdapter(
         Glide.with(holder.imageView.context)
             .load(result.imageUri)
             .into(holder.imageView)
+        
+        // 삭제 버튼 설정
+        holder.deleteButton?.let { deleteBtn ->
+            deleteBtn.visibility = View.VISIBLE
+            deleteBtn.setOnClickListener {
+                onImageDeleted?.invoke(position)
+            }
+        }
         
         // 분석 상태에 따른 UI 업데이트
         Log.d("AnalysisAdapter", "=== UI UPDATE for position $position ===")

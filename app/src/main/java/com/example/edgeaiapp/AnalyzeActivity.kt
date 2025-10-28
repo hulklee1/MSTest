@@ -55,6 +55,9 @@ class AnalyzeActivity : AppCompatActivity() {
         setupRecyclerView()
         setupButtons()
         loadSelectedImages()
+        
+        // 초기 버튼 상태 설정
+        updateButtonStates()
     }
 
     private fun setupRecyclerView() {
@@ -65,13 +68,21 @@ class AnalyzeActivity : AppCompatActivity() {
         recyclerView.isNestedScrollingEnabled = false
         recyclerView.setHasFixedSize(true)
         
-        adapter = com.example.edgeaiapp.AnalysisResultAdapter(results) { position, selectedClass ->
-            // 클래스 선택 시 호출되는 콜백
-            val result = results[position]
-            result.selectedClass = selectedClass
-            result.confidence = result.allClasses.find { it.className == selectedClass }?.confidence ?: 0.0f
-            adapter.notifyItemChanged(position)
-        }
+        adapter = com.example.edgeaiapp.AnalysisResultAdapter(
+            results,
+            onClassSelected = { position, selectedClass ->
+                // 클래스 선택 시 호출되는 콜백
+                val result = results[position]
+                result.selectedClass = selectedClass
+                result.confidence = result.allClasses.find { it.className == selectedClass }?.confidence ?: 0.0f
+                adapter.notifyItemChanged(position)
+                updateButtonStates()
+            },
+            onImageDeleted = { position ->
+                // 이미지 삭제 시 호출되는 콜백
+                deleteImageAtPosition(position)
+            }
+        )
         
         recyclerView.adapter = adapter
     }
@@ -79,8 +90,39 @@ class AnalyzeActivity : AppCompatActivity() {
     private fun setupButtons() {
         // 이미지 선택 버튼
         findViewById<Button>(R.id.btnSelectImages).setOnClickListener {
-            val intent = Intent(this, com.example.edgeaiapp.ImageSelectionActivity::class.java)
-            startActivityForResult(intent, REQUEST_SELECT_IMAGES)
+            if (results.isEmpty()) {
+                // 첫 번째 이미지 선택
+                val intent = Intent(this, com.example.edgeaiapp.ImageSelectionActivity::class.java)
+                startActivityForResult(intent, REQUEST_SELECT_IMAGES)
+            } else {
+                // 추가 이미지 선택 옵션 제공
+                val dialog = androidx.appcompat.app.AlertDialog.Builder(this, R.style.CustomAlertDialog)
+                    .setTitle("이미지 선택")
+                    .setMessage("어떤 작업을 하시겠습니까?")
+                    .setPositiveButton("새로 선택") { _, _ ->
+                        // 기존 이미지 모두 삭제하고 새로 선택
+                        results.clear()
+                        adapter.notifyDataSetChanged()
+                        clearAllStoredData()
+                        updateButtonStates()
+                        
+                        val intent = Intent(this, com.example.edgeaiapp.ImageSelectionActivity::class.java)
+                        startActivityForResult(intent, REQUEST_SELECT_IMAGES)
+                    }
+                    .setNeutralButton("추가 선택") { _, _ ->
+                        // 기존 이미지에 추가
+                        selectAdditionalImages()
+                    }
+                    .setNegativeButton("취소", null)
+                    .create()
+                
+                dialog.show()
+                
+                // 버튼 색상 개선
+                dialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_POSITIVE)?.setTextColor(getColor(R.color.button_positive))
+                dialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_NEUTRAL)?.setTextColor(getColor(R.color.button_blue_primary))
+                dialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_NEGATIVE)?.setTextColor(getColor(R.color.button_negative))
+            }
         }
 
         // 분석 요청 버튼
@@ -222,10 +264,14 @@ class AnalyzeActivity : AppCompatActivity() {
                     results.addAll(convertedResults)
                     adapter.notifyDataSetChanged()
                     
-                    // 상품 정보가 있으면 상품 선택 화면으로 이동 준비
+                    // 상품 정보 확인 및 저장
+                    Log.d("AnalyzeActivity", "Product info received: ${analysisResponse.productInfo}")
+                    
                     if (analysisResponse.productInfo.isNotEmpty()) {
                         val firstTagName = analysisResponse.productInfo.keys.firstOrNull()
                         if (firstTagName != null) {
+                            Log.d("AnalyzeActivity", "Found product info for tagName: $firstTagName")
+                            
                             // 분석 완료 메시지와 함께 상품 선택 안내
                             Toast.makeText(this@AnalyzeActivity, 
                                 "이미지 분석이 완료되었습니다.\n상품을 선택하여 전송하세요.", 
@@ -238,9 +284,22 @@ class AnalyzeActivity : AppCompatActivity() {
                             
                             // 상품 정보를 임시 저장 (전송 시 사용)
                             saveProductInfoForTransmission(analysisResponse.productInfo, firstTagName)
+                        } else {
+                            Log.w("AnalyzeActivity", "Product info is not empty but no valid tagName found")
+                            Toast.makeText(this@AnalyzeActivity, 
+                                "이미지 분석이 완료되었지만 상품 정보를 찾을 수 없습니다.", 
+                                Toast.LENGTH_SHORT).show()
                         }
                     } else {
-                        Toast.makeText(this@AnalyzeActivity, "이미지 분석이 완료되었습니다.", Toast.LENGTH_SHORT).show()
+                        Log.w("AnalyzeActivity", "No product info received from server")
+                        Toast.makeText(this@AnalyzeActivity, 
+                            "이미지 분석이 완료되었지만 상품 정보를 찾을 수 없습니다.\n서버 연결을 확인해주세요.", 
+                            Toast.LENGTH_LONG).show()
+                        
+                        // 상품 정보가 없어도 전송 버튼은 활성화 (디버깅용)
+                        val sendButton = findViewById<Button>(R.id.btnSendFinalResults)
+                        sendButton.text = "디버그: 상품 정보 없이 전송"
+                        sendButton.isEnabled = true
                     }
                 }
             } else {
@@ -524,7 +583,10 @@ class AnalyzeActivity : AppCompatActivity() {
             val productInfoJson = sharedPrefs.getString("product_info", null)
             val primaryTagName = sharedPrefs.getString("primary_tag_name", null)
             
+            Log.d("AnalyzeActivity", "Checking saved product info: productInfoJson=${productInfoJson?.length ?: 0} chars, primaryTagName=$primaryTagName")
+            
             if (productInfoJson.isNullOrEmpty() || primaryTagName.isNullOrEmpty()) {
+                Log.e("AnalyzeActivity", "Missing product info - productInfoJson: ${productInfoJson != null}, primaryTagName: ${primaryTagName != null}")
                 Toast.makeText(this, "상품 정보가 없습니다. 먼저 이미지 분석을 완료해주세요.", Toast.LENGTH_SHORT).show()
                 return
             }
@@ -793,14 +855,20 @@ class AnalyzeActivity : AppCompatActivity() {
                 completedResults.take(3).joinToString("\n") { "• ${it.selectedClass} (${(it.confidence * 100).toInt()}%)" } +
                 if (completedResults.size > 3) "\n• ... 및 ${completedResults.size - 3}개 더" else ""
         
-        androidx.appcompat.app.AlertDialog.Builder(this)
+        val dialog = androidx.appcompat.app.AlertDialog.Builder(this, R.style.CustomAlertDialog)
             .setTitle("최종 결과 전송")
             .setMessage(dialogMessage)
             .setPositiveButton("전송") { _, _ ->
                 performFinalTransmissionToEdgeServer(completedResults)
             }
             .setNegativeButton("취소", null)
-            .show()
+            .create()
+        
+        dialog.show()
+        
+        // 버튼 색상 개선
+        dialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_POSITIVE)?.setTextColor(getColor(R.color.button_positive))
+        dialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_NEGATIVE)?.setTextColor(getColor(R.color.button_negative))
     }
     
     /**
@@ -996,6 +1064,26 @@ class AnalyzeActivity : AppCompatActivity() {
                             results.add(com.example.edgeaiapp.AnalysisResult(imageUri = uri))
                         }
                         adapter.notifyDataSetChanged()
+                        updateButtonStates()
+                        
+                        Log.d("AnalyzeActivity", "Selected ${selectedImages.size} new images")
+                    }
+                }
+            }
+            REQUEST_ADD_IMAGES -> {
+                if (resultCode == RESULT_OK && data != null) {
+                    // 추가 이미지 선택 처리
+                    val additionalImages = data.getParcelableArrayListExtra<Uri>("selected_images")
+                    if (additionalImages != null) {
+                        val previousCount = results.size
+                        additionalImages.forEach { uri ->
+                            results.add(com.example.edgeaiapp.AnalysisResult(imageUri = uri))
+                        }
+                        adapter.notifyItemRangeInserted(previousCount, additionalImages.size)
+                        updateButtonStates()
+                        
+                        Toast.makeText(this, "${additionalImages.size}개 이미지가 추가되었습니다.", Toast.LENGTH_SHORT).show()
+                        Log.d("AnalyzeActivity", "Added ${additionalImages.size} additional images. Total: ${results.size}")
                     }
                 }
             }
@@ -1052,21 +1140,171 @@ class AnalyzeActivity : AppCompatActivity() {
                     val transmissionSuccess = data.getBooleanExtra("transmission_success", false)
                     val selectedProduct = data.getStringExtra("selected_product")
                     val imageCount = data.getIntExtra("image_count", 0)
+                    val batchCount = data.getIntExtra("batch_count", 1)
                     
                     if (transmissionSuccess) {
                         Toast.makeText(this, 
-                            "전송 완료!\n상품: $selectedProduct\n이미지: ${imageCount}개", 
+                            "전송 완료!\n상품: $selectedProduct\n이미지: ${imageCount}개 (${batchCount}개 배치)", 
                             Toast.LENGTH_LONG).show()
                         
-                        // 전송 완료 후 결과 초기화 (선택 사항)
-                        // results.clear()
-                        // adapter.notifyDataSetChanged()
+                        // 전송 완료 후 완전 초기화
+                        performCompleteReset()
                     } else {
                         Toast.makeText(this, "전송이 취소되었습니다.", Toast.LENGTH_SHORT).show()
                     }
                 }
             }
         }
+    }
+    
+    /**
+     * 전송 완료 후 완전 초기화
+     */
+    private fun performCompleteReset() {
+        Log.d("AnalyzeActivity", "=== PERFORMING COMPLETE RESET ===")
+        
+        try {
+            // 1. 이미지 결과 데이터 초기화
+            results.clear()
+            adapter.notifyDataSetChanged()
+            Log.d("AnalyzeActivity", "Results cleared")
+            
+            // 2. SharedPreferences 초기화
+            clearAllStoredData()
+            
+            // 3. UI 상태 초기화
+            resetUIState()
+            
+            // 4. 임시 파일 정리
+            clearTempFiles()
+            
+            Log.d("AnalyzeActivity", "Complete reset finished")
+            
+            // 사용자에게 알림
+            Handler(Looper.getMainLooper()).postDelayed({
+                Toast.makeText(this, "새로운 이미지 분석을 시작할 수 있습니다.", Toast.LENGTH_SHORT).show()
+            }, 500)
+            
+        } catch (e: Exception) {
+            Log.e("AnalyzeActivity", "Error during complete reset: ${e.message}", e)
+        }
+    }
+    
+    /**
+     * 저장된 모든 데이터 초기화
+     */
+    private fun clearAllStoredData() {
+        val sharedPrefs = getSharedPreferences("EdgeAIApp", MODE_PRIVATE)
+        sharedPrefs.edit()
+            .remove("product_info")
+            .remove("primary_tag_name")
+            .remove("analysis_results")
+            .remove("selected_images")
+            .apply()
+        Log.d("AnalyzeActivity", "SharedPreferences cleared")
+    }
+    
+    /**
+     * UI 상태 완전 초기화
+     */
+    private fun resetUIState() {
+        // 버튼 상태 초기화
+        val btnSelectImages = findViewById<Button>(R.id.btnSelectImages)
+        val btnAnalyze = findViewById<Button>(R.id.btnAnalyze)
+        val btnSendFinalResults = findViewById<Button>(R.id.btnSendFinalResults)
+        
+        btnSelectImages.text = "이미지 선택"
+        btnSelectImages.isEnabled = true
+        
+        btnAnalyze.text = "분석 시작"
+        btnAnalyze.isEnabled = false
+        
+        btnSendFinalResults.text = "최종 전송"
+        btnSendFinalResults.isEnabled = false
+        
+        Log.d("AnalyzeActivity", "UI state reset")
+    }
+    
+    /**
+     * 임시 파일들 정리
+     */
+    private fun clearTempFiles() {
+        try {
+            val cacheDir = cacheDir
+            cacheDir.listFiles()?.forEach { file ->
+                if (file.name.startsWith("temp_image_")) {
+                    if (file.delete()) {
+                        Log.d("AnalyzeActivity", "Deleted temp file: ${file.name}")
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            Log.w("AnalyzeActivity", "Error clearing temp files: ${e.message}")
+        }
+    }
+    
+    /**
+     * 특정 위치의 이미지 삭제
+     */
+    private fun deleteImageAtPosition(position: Int) {
+        if (position >= 0 && position < results.size) {
+            Log.d("AnalyzeActivity", "Deleting image at position $position")
+            
+            // 확인 다이얼로그 표시
+            val dialog = androidx.appcompat.app.AlertDialog.Builder(this, R.style.CustomAlertDialog)
+                .setTitle("이미지 삭제")
+                .setMessage("선택한 이미지를 삭제하시겠습니까?")
+                .setPositiveButton("삭제") { _, _ ->
+                    // 실제 삭제 수행
+                    results.removeAt(position)
+                    adapter.notifyItemRemoved(position)
+                    adapter.notifyItemRangeChanged(position, results.size - position)
+                    
+                    // 버튼 상태 업데이트
+                    updateButtonStates()
+                    
+                    Toast.makeText(this, "이미지가 삭제되었습니다.", Toast.LENGTH_SHORT).show()
+                    
+                    Log.d("AnalyzeActivity", "Image deleted. Remaining images: ${results.size}")
+                }
+                .setNegativeButton("취소", null)
+                .create()
+            
+            dialog.show()
+            
+            // 버튼 색상 개선
+            dialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_POSITIVE)?.setTextColor(getColor(R.color.button_negative))
+            dialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_NEGATIVE)?.setTextColor(getColor(R.color.button_neutral))
+        }
+    }
+    
+    /**
+     * 버튼 상태 업데이트
+     */
+    private fun updateButtonStates() {
+        val btnAnalyze = findViewById<Button>(R.id.btnAnalyze)
+        val btnSendFinalResults = findViewById<Button>(R.id.btnSendFinalResults)
+        
+        // 분석 버튼: 이미지가 있으면 활성화
+        btnAnalyze.isEnabled = results.isNotEmpty()
+        
+        // 전송 버튼: 분석 완료된 이미지가 있으면 활성화
+        val hasAnalyzedResults = results.any { it.isAnalyzed && it.selectedClass.isNotEmpty() }
+        btnSendFinalResults.isEnabled = hasAnalyzedResults
+        
+        Log.d("AnalyzeActivity", "Button states updated - Analyze: ${btnAnalyze.isEnabled}, Send: ${btnSendFinalResults.isEnabled}")
+    }
+    
+    /**
+     * 추가 이미지 선택
+     */
+    private fun selectAdditionalImages() {
+        Log.d("AnalyzeActivity", "Selecting additional images")
+        
+        val intent = Intent(this, ImageSelectionActivity::class.java)
+        intent.putExtra("auth_token", authToken)
+        intent.putExtra("allow_multiple_selection", true)
+        startActivityForResult(intent, REQUEST_ADD_IMAGES)
     }
     
     /**
@@ -1185,5 +1423,6 @@ class AnalyzeActivity : AppCompatActivity() {
         private const val REQUEST_SELECT_IMAGES = 1001
         private const val REQUEST_EDIT_RESULTS = 1002
         private const val REQUEST_PRODUCT_SELECTION = 1003
+        private const val REQUEST_ADD_IMAGES = 1004
     }
 } 

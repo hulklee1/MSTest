@@ -114,9 +114,18 @@ class ProductSelectionActivity : AppCompatActivity() {
     }
     
     private fun setupUI() {
+        Log.d(TAG, "Setting up UI - productInfo: ${productInfo?.keys}, selectedImages: ${selectedImages?.size}")
+        
         if (productInfo.isNullOrEmpty()) {
+            Log.e(TAG, "Product info is null or empty!")
             titleText.text = "상품 정보를 불러올 수 없습니다"
             btnSendFinal.isEnabled = false
+            
+            // 디버깅을 위해 Intent에서 받은 데이터 확인
+            val productInfoJson = intent.getStringExtra("product_info")
+            val tagNameFromIntent = intent.getStringExtra("tag_name")
+            Log.e(TAG, "Intent data - product_info: ${productInfoJson?.length ?: 0} chars, tag_name: $tagNameFromIntent")
+            
             return
         }
         
@@ -287,72 +296,111 @@ class ProductSelectionActivity : AppCompatActivity() {
                         btnSendFinal.text = "전송 중... ($attempt/$maxAttempts)"
                     }
                     
-                    // 이미지들을 Base64로 변환 (메모리 효율적으로)
-                    val imageDataList = mutableListOf<String>()
-                    var totalSize = 0L
+                    // 배치 전송 방식으로 변경 (5개씩 나누어 전송)
+                    val batchSize = 5
+                    val totalImages = images.size
+                    val totalBatches = (totalImages + batchSize - 1) / batchSize
                     
-                    withContext(Dispatchers.IO) {
-                        for ((index, imageUri) in images.withIndex()) {
-                            try {
-                                Log.d(TAG, "이미지 변환 중: ${index + 1}/${images.size}")
-                                
-                                val inputStream = contentResolver.openInputStream(imageUri)
-                                val bytes = inputStream?.readBytes()
-                                inputStream?.close()
-                                
-                                if (bytes != null) {
-                                    totalSize += bytes.size
+                    Log.d(TAG, "배치 전송 시작: 총 ${totalImages}개 이미지를 ${totalBatches}개 배치로 전송")
+                    
+                    var successfulBatches = 0
+                    var totalProcessedImages = 0
+                    
+                    // 배치별로 전송
+                    for (batchIndex in 0 until totalBatches) {
+                        val startIndex = batchIndex * batchSize
+                        val endIndex = minOf(startIndex + batchSize, totalImages)
+                        val batchImages = images.subList(startIndex, endIndex)
+                        
+                        Log.d(TAG, "배치 ${batchIndex + 1}/${totalBatches} 처리 중: ${batchImages.size}개 이미지")
+                        
+                        withContext(Dispatchers.Main) {
+                            btnSendFinal.text = "전송 중... 배치 ${batchIndex + 1}/${totalBatches}"
+                        }
+                        
+                        // 배치 이미지들을 Base64로 변환
+                        val imageDataList = mutableListOf<String>()
+                        var batchSizeBytes = 0L
+                        
+                        withContext(Dispatchers.IO) {
+                            for ((index, imageUri) in batchImages.withIndex()) {
+                                try {
+                                    Log.d(TAG, "배치 ${batchIndex + 1} - 이미지 변환 중: ${index + 1}/${batchImages.size}")
                                     
-                                    // 개별 이미지 크기 제한 (5MB)
-                                    if (bytes.size > 5 * 1024 * 1024) {
-                                        Log.w(TAG, "이미지 크기가 너무 큽니다: ${bytes.size} bytes, 압축 시도")
-                                        // 이미지 압축 로직 추가 가능
+                                    val inputStream = contentResolver.openInputStream(imageUri)
+                                    val bytes = inputStream?.readBytes()
+                                    inputStream?.close()
+                                    
+                                    if (bytes != null) {
+                                        batchSizeBytes += bytes.size
+                                        
+                                        // 개별 이미지 크기 제한 (5MB)
+                                        if (bytes.size > 5 * 1024 * 1024) {
+                                            Log.w(TAG, "이미지 크기가 너무 큽니다: ${bytes.size} bytes")
+                                        }
+                                        
+                                        val base64 = Base64.encodeToString(bytes, Base64.NO_WRAP)
+                                        imageDataList.add(base64)
+                                        Log.d(TAG, "배치 ${batchIndex + 1} - 이미지 변환 완료: ${bytes.size} bytes")
+                                    } else {
+                                        Log.e(TAG, "이미지 읽기 실패: $imageUri")
+                                        throw Exception("이미지 읽기 실패: $imageUri")
                                     }
-                                    
-                                    val base64 = Base64.encodeToString(bytes, Base64.NO_WRAP)
-                                    imageDataList.add(base64)
-                                    Log.d(TAG, "이미지 변환 완료: ${bytes.size} bytes -> ${base64.length} chars")
-                                } else {
-                                    Log.e(TAG, "이미지 읽기 실패: $imageUri")
-                                    throw Exception("이미지 읽기 실패: $imageUri")
+                                } catch (e: Exception) {
+                                    Log.e(TAG, "이미지 변환 오류: $imageUri", e)
+                                    throw Exception("이미지 변환 실패: ${e.message}")
                                 }
-                            } catch (e: Exception) {
-                                Log.e(TAG, "이미지 변환 오류: $imageUri", e)
-                                throw Exception("이미지 변환 실패: ${e.message}")
                             }
+                        }
+                        
+                        Log.d(TAG, "배치 ${batchIndex + 1} 크기: ${batchSizeBytes / 1024 / 1024}MB")
+                        
+                        if (imageDataList.isEmpty()) {
+                            throw Exception("배치 ${batchIndex + 1}에서 변환된 이미지가 없습니다")
+                        }
+                        
+                        // 배치 전송 요청 생성
+                        val batchRequest = FinalTransmissionRequest(
+                            selected_product = product,
+                            image_data_list = imageDataList,
+                            timestamp = System.currentTimeMillis(),
+                            device_id = android.provider.Settings.Secure.getString(
+                                contentResolver,
+                                android.provider.Settings.Secure.ANDROID_ID
+                            ),
+                            batch_info = BatchInfo(
+                                batch_index = batchIndex,
+                                total_batches = totalBatches,
+                                batch_size = imageDataList.size,
+                                total_images = totalImages
+                            )
+                        )
+                        
+                        Log.d(TAG, "배치 ${batchIndex + 1} 전송 요청 생성 완료: ${imageDataList.size}개 이미지")
+                        
+                        // 배치를 서버로 전송
+                        val batchSuccess = sendToServer(batchRequest, attempt)
+                        
+                        if (batchSuccess) {
+                            successfulBatches++
+                            totalProcessedImages += imageDataList.size
+                            Log.d(TAG, "배치 ${batchIndex + 1} 전송 성공")
+                        } else {
+                            throw Exception("배치 ${batchIndex + 1} 전송 실패")
+                        }
+                        
+                        // 배치 간 잠시 대기 (서버 부하 방지)
+                        if (batchIndex < totalBatches - 1) {
+                            delay(1000) // 1초 대기
                         }
                     }
                     
-                    Log.d(TAG, "총 이미지 크기: ${totalSize / 1024 / 1024}MB")
-                    
-                    if (imageDataList.isEmpty()) {
-                        throw Exception("변환된 이미지가 없습니다")
-                    }
-                    
-                    // 총 크기 제한 (50MB)
-                    if (totalSize > 50 * 1024 * 1024) {
-                        throw Exception("총 이미지 크기가 너무 큽니다: ${totalSize / 1024 / 1024}MB")
-                    }
-                    
-                    // 최종 전송 요청 생성
-                    val request = FinalTransmissionRequest(
-                        selected_product = product,
-                        image_data_list = imageDataList,
-                        timestamp = System.currentTimeMillis(),
-                        device_id = android.provider.Settings.Secure.getString(
-                            contentResolver,
-                            android.provider.Settings.Secure.ANDROID_ID
-                        )
-                    )
-                    
-                    Log.d(TAG, "전송 요청 생성 완료: ${imageDataList.size}개 이미지, prodSq: ${product.prodSq}")
-                    
-                    // 서버로 전송
-                    val success = sendToServer(request, attempt)
-                    
-                    if (success) {
+                    // 모든 배치 전송 완료
+                    if (successfulBatches == totalBatches) {
                         withContext(Dispatchers.Main) {
-                            Toast.makeText(this@ProductSelectionActivity, "전송이 완료되었습니다.", Toast.LENGTH_LONG).show()
+                            Toast.makeText(this@ProductSelectionActivity, 
+                                "전송이 완료되었습니다. (${totalProcessedImages}개 이미지, ${totalBatches}개 배치)", 
+                                Toast.LENGTH_LONG).show()
                             
                             // 성공 결과와 함께 액티비티 종료
                             val resultIntent = Intent().apply {
@@ -360,8 +408,8 @@ class ProductSelectionActivity : AppCompatActivity() {
                                 putExtra("selected_product_type", selectedProductType)
                                 putExtra("selected_product", product.prodNm)
                                 putExtra("selected_prod_sq", product.prodSq)
-                                putExtra("image_count", imageDataList.size)
-                                putExtra("total_size_mb", totalSize / 1024 / 1024)
+                                putExtra("image_count", totalProcessedImages)
+                                putExtra("batch_count", totalBatches)
                                 putExtra("attempts", attempt)
                             }
                             setResult(RESULT_OK, resultIntent)
@@ -369,7 +417,7 @@ class ProductSelectionActivity : AppCompatActivity() {
                         }
                         return@launch // 성공 시 루프 종료
                     } else {
-                        lastError = "서버 응답 오류"
+                        lastError = "일부 배치 전송 실패 (${successfulBatches}/${totalBatches})"
                         if (attempt < maxAttempts) {
                             Log.w(TAG, "전송 실패, 재시도 대기 중... ($attempt/$maxAttempts)")
                             delay((2000 * attempt).toLong()) // 지수 백오프

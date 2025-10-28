@@ -37,8 +37,7 @@
                 android:layout_weight="1"
                 android:text="@string/select_images"
                 android:layout_marginEnd="8dp"
-                android:background="@android:color/holo_blue_dark"
-                android:textColor="@android:color/white"/>
+                style="@style/BlueButton"/>
 
             <Button
                 android:id="@+id/btnAnalyze"
@@ -47,8 +46,7 @@
                 android:layout_weight="1"
                 android:text="@string/request_analysis"
                 android:layout_marginStart="8dp"
-                android:background="@android:color/holo_green_dark"
-                android:textColor="@android:color/white"/>
+                style="@style/PositiveButton"/>
         </LinearLayout>
 
         <LinearLayout
@@ -63,8 +61,7 @@
                 android:layout_weight="1"
                 android:text="@string/edit_results"
                 android:layout_marginEnd="8dp"
-                android:background="@android:color/holo_orange_dark"
-                android:textColor="@android:color/white"/>
+                style="@style/BlueButton"/>
 
             <Button
                 android:id="@+id/btnSendFinalResults"
@@ -73,8 +70,7 @@
                 android:layout_weight="1"
                 android:text="@string/send_final"
                 android:layout_marginStart="8dp"
-                android:background="@android:color/holo_red_dark"
-                android:textColor="@android:color/white"/>
+                style="@style/PositiveButton"/>
         </LinearLayout>
     </LinearLayout>
 
