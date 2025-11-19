@@ -47,6 +47,20 @@ class ProductSelectionActivity : AppCompatActivity() {
     
     companion object {
         private const val TAG = "ProductSelectionActivity"
+        
+        // 전체 지원 상품 클래스 목록 (서버의 CLASS_NAME_TO_TAG_NAME과 동일)
+        private val ALL_PRODUCT_CLASSES = listOf(
+            "apple",
+            "banana", 
+            "korean melon",
+            "korean radish",
+            "melon",
+            "orange",
+            "peach",
+            "pear",
+            "plum",
+            "zucchini"
+        )
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -143,26 +157,42 @@ class ProductSelectionActivity : AppCompatActivity() {
     }
     
     private fun setupStep1ProductTypes() {
-        val productTypes = productInfo!!.keys.toList()
+        // 분석된 상품 종류와 전체 지원 상품 종류를 결합
+        val analyzedProductTypes = productInfo?.keys?.toList() ?: emptyList()
+        val allProductTypes = ALL_PRODUCT_CLASSES.toList()
         
-        if (productTypes.isEmpty()) {
-            titleText.text = "분석된 상품이 없습니다"
-            btnSendFinal.isEnabled = false
-            return
-        }
+        Log.d(TAG, "Analyzed product types: $analyzedProductTypes")
+        Log.d(TAG, "All available product types: $allProductTypes")
         
-        titleText.text = "상품 종류를 선택하세요 (${productTypes.size}개 분석됨)"
+        titleText.text = "상품 종류를 선택하세요 (${analyzedProductTypes.size}개 분석됨, ${allProductTypes.size}개 전체 지원)"
         
-        // 1단계 라디오 버튼들 동적 생성
+        // 1단계 라디오 버튼들 동적 생성 (전체 상품 클래스 기준)
         radioGroupProductTypes.removeAllViews()
         
-        productTypes.forEachIndexed { index, productType ->
-            val productCount = productInfo!![productType]?.size ?: 0
+        allProductTypes.forEachIndexed { index, productType ->
+            val isAnalyzed = analyzedProductTypes.contains(productType)
+            val productCount = productInfo?.get(productType)?.size ?: 0
+            
+            val displayText = if (isAnalyzed) {
+                "$productType (분석됨 - $productCount 개 상품)"
+            } else {
+                "$productType (수동 선택)"
+            }
+            
             val radioButton = RadioButton(this).apply {
                 id = index
-                text = "$productType ($productCount 개 상품)"
+                text = displayText
                 textSize = 16f
-                setTextColor(android.graphics.Color.parseColor("#333333"))
+                
+                // 분석된 상품과 수동 선택 상품 구분하여 스타일링
+                if (isAnalyzed) {
+                    setTextColor(android.graphics.Color.parseColor("#2E7D32")) // 진한 초록색
+                    setTypeface(null, android.graphics.Typeface.BOLD)
+                } else {
+                    setTextColor(android.graphics.Color.parseColor("#666666")) // 회색
+                    setTypeface(null, android.graphics.Typeface.NORMAL)
+                }
+                
                 setPadding(24, 20, 24, 20)
                 setBackgroundColor(android.graphics.Color.parseColor("#FFFFFF"))
                 
@@ -179,8 +209,8 @@ class ProductSelectionActivity : AppCompatActivity() {
         
         // 1단계 선택 리스너
         radioGroupProductTypes.setOnCheckedChangeListener { _, checkedId ->
-            if (checkedId >= 0 && checkedId < productTypes.size) {
-                selectedProductType = productTypes[checkedId]
+            if (checkedId >= 0 && checkedId < allProductTypes.size) {
+                selectedProductType = allProductTypes[checkedId]
                 Log.d(TAG, "Selected product type: $selectedProductType")
                 
                 // 2단계 UI 표시
@@ -193,28 +223,70 @@ class ProductSelectionActivity : AppCompatActivity() {
     }
     
     private fun setupStep2SpecificProducts(productType: String) {
-        val products = productInfo!![productType] ?: emptyList()
+        val products = productInfo?.get(productType) ?: emptyList()
         
-        if (products.isEmpty()) {
-            Toast.makeText(this, "해당 상품 종류에 대한 상품이 없습니다.", Toast.LENGTH_SHORT).show()
-            return
-        }
+        Log.d(TAG, "Setting up step 2 for product type: $productType, products count: ${products.size}")
         
         // 2단계 UI 표시
         tvStep2Title.visibility = View.VISIBLE
+        tvStep2Title.text = if (products.isNotEmpty()) {
+            "구체적인 상품을 선택하세요"
+        } else {
+            "수동으로 상품을 등록합니다"
+        }
         scrollViewStep2.visibility = View.VISIBLE
         
         // 2단계 라디오 버튼들 동적 생성
         radioGroupSpecificProducts.removeAllViews()
         
-        products.forEachIndexed { index, product ->
-            val radioButton = RadioButton(this).apply {
-                id = index
-                text = product.prodNm
+        if (products.isNotEmpty()) {
+            // 분석된 상품이 있는 경우
+            products.forEachIndexed { index, product ->
+                val radioButton = RadioButton(this).apply {
+                    id = index
+                    text = product.prodNm
+                    textSize = 14f
+                    setTextColor(android.graphics.Color.parseColor("#2E7D32")) // 초록색
+                    setTypeface(null, android.graphics.Typeface.BOLD)
+                    setPadding(20, 16, 20, 16)
+                    setBackgroundColor(android.graphics.Color.parseColor("#FFFFFF"))
+                    
+                    // 마진 설정
+                    val params = android.widget.LinearLayout.LayoutParams(
+                        android.widget.LinearLayout.LayoutParams.MATCH_PARENT,
+                        android.widget.LinearLayout.LayoutParams.WRAP_CONTENT
+                    )
+                    params.setMargins(0, 4, 0, 4)
+                    layoutParams = params
+                }
+                radioGroupSpecificProducts.addView(radioButton)
+            }
+            
+            // 2단계 선택 리스너 (분석된 상품)
+            radioGroupSpecificProducts.setOnCheckedChangeListener { _, checkedId ->
+                if (checkedId >= 0 && checkedId < products.size) {
+                    val selectedProductInfo = products[checkedId]
+                    selectedProduct = SelectedProduct(
+                        prodSq = selectedProductInfo.prodSq,
+                        prodNm = selectedProductInfo.prodNm,
+                        tagName = selectedProductInfo.tagName ?: getKoreanTagName(productType)
+                    )
+                    
+                    Log.d(TAG, "Selected analyzed product: ${selectedProduct}")
+                    updateSelectedInfo()
+                    btnSendFinal.isEnabled = true
+                }
+            }
+        } else {
+            // 분석된 상품이 없는 경우 - 수동 선택 옵션 제공
+            val manualRadioButton = RadioButton(this).apply {
+                id = 0
+                text = "수동으로 '$productType' 상품 등록"
                 textSize = 14f
-                setTextColor(android.graphics.Color.parseColor("#333333"))
+                setTextColor(android.graphics.Color.parseColor("#666666")) // 회색
+                setTypeface(null, android.graphics.Typeface.NORMAL)
                 setPadding(20, 16, 20, 16)
-                setBackgroundColor(android.graphics.Color.parseColor("#FFFFFF"))
+                setBackgroundColor(android.graphics.Color.parseColor("#F5F5F5"))
                 
                 // 마진 설정
                 val params = android.widget.LinearLayout.LayoutParams(
@@ -224,31 +296,42 @@ class ProductSelectionActivity : AppCompatActivity() {
                 params.setMargins(0, 4, 0, 4)
                 layoutParams = params
             }
-            radioGroupSpecificProducts.addView(radioButton)
-        }
-        
-        // 2단계 선택 리스너
-        radioGroupSpecificProducts.setOnCheckedChangeListener { _, checkedId ->
-            if (checkedId >= 0 && checkedId < products.size) {
-                val product = products[checkedId]
-                selectedProduct = SelectedProduct(
-                    prodSq = product.prodSq,
-                    prodNm = product.prodNm,
-                    tagName = product.tagName ?: selectedProductType!!
-                )
-                Log.d(TAG, "Selected specific product: ${selectedProduct?.prodNm} (prodSq: ${selectedProduct?.prodSq})")
-                
-                // 선택 정보 업데이트
-                updateSelectedInfo()
-                
-                // 전송 버튼 활성화
-                btnSendFinal.isEnabled = true
+            radioGroupSpecificProducts.addView(manualRadioButton)
+            
+            // 2단계 선택 리스너 (수동 선택)
+            radioGroupSpecificProducts.setOnCheckedChangeListener { _, checkedId ->
+                if (checkedId == 0) {
+                    // 수동 선택 시 기본 상품 정보 생성
+                    selectedProduct = SelectedProduct(
+                        prodSq = "MANUAL_${productType.uppercase().replace(" ", "_")}_${System.currentTimeMillis()}",
+                        prodNm = "수동 등록 - $productType",
+                        tagName = getKoreanTagName(productType)
+                    )
+                    
+                    Log.d(TAG, "Selected manual product: ${selectedProduct}")
+                    updateSelectedInfo()
+                    btnSendFinal.isEnabled = true
+                }
             }
         }
-        
-        // 첫 번째 상품을 기본 선택
-        if (products.isNotEmpty()) {
-            radioGroupSpecificProducts.check(0)
+    }
+    
+    /**
+     * 영문 클래스명을 한글 tagName으로 변환
+     */
+    private fun getKoreanTagName(englishClassName: String): String {
+        return when (englishClassName) {
+            "apple" -> "사과"
+            "banana" -> "바나나"
+            "korean melon" -> "참외"
+            "korean radish" -> "무"
+            "melon" -> "멜론"
+            "orange" -> "오렌지"
+            "peach" -> "복숭아"
+            "pear" -> "배"
+            "plum" -> "자두"
+            "zucchini" -> "애호박"
+            else -> englishClassName // 매핑되지 않은 경우 원래 이름 사용
         }
     }
     

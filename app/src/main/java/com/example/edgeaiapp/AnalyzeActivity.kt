@@ -1028,17 +1028,24 @@ class AnalyzeActivity : AppCompatActivity() {
         runOnUiThread {
             Log.d("AnalyzeActivity", "=== Force UI Update Started ===")
             
-            // 어댑터 데이터 새로고침
-            adapter.notifyDataSetChanged()
-            
             // RecyclerView 자체 새로고침
             val recyclerView = findViewById<RecyclerView>(R.id.recyclerView)
             recyclerView.invalidate()
+            recyclerView.requestLayout()
+            
+            // 어댑터 완전 재설정
+            val currentAdapter = recyclerView.adapter
+            recyclerView.adapter = null
+            recyclerView.adapter = currentAdapter
+            
+            // 어댑터 데이터 새로고침
+            adapter.notifyDataSetChanged()
             
             // 각 항목의 뷰를 개별적으로 새로고침
             Handler(Looper.getMainLooper()).postDelayed({
                 for (i in 0 until results.size) {
                     adapter.notifyItemChanged(i)
+                    Log.d("AnalyzeActivity", "Force updated item $i: isAnalyzed=${results[i].isAnalyzed}, selectedClass='${results[i].selectedClass}'")
                 }
                 Log.d("AnalyzeActivity", "Force UI Update completed for ${results.size} items")
             }, 50)
@@ -1109,21 +1116,30 @@ class AnalyzeActivity : AppCompatActivity() {
                         runOnUiThread {
                             Log.d("AnalyzeActivity", "Triggering UI updates...")
                             
-                            // 1. 개별 아이템 업데이트
-                            for (i in results.indices) {
-                                adapter.notifyItemChanged(i)
-                            }
+                            // 1. 즉시 전체 데이터셋 변경 알림
+                            adapter.notifyDataSetChanged()
+                            Log.d("AnalyzeActivity", "Immediate adapter refresh completed")
                             
-                            // 2. 전체 데이터셋 변경 알림 (지연)
+                            // 2. 개별 아이템 업데이트 (지연)
                             Handler(Looper.getMainLooper()).postDelayed({
-                        adapter.notifyDataSetChanged()
-                                Log.d("AnalyzeActivity", "Full adapter refresh completed")
-                            }, 100)
+                                for (i in results.indices) {
+                                    adapter.notifyItemChanged(i)
+                                    Log.d("AnalyzeActivity", "Updated item $i: ${results[i].selectedClass}")
+                                }
+                                Log.d("AnalyzeActivity", "Individual item updates completed")
+                            }, 50)
                             
-                            // 3. RecyclerView 강제 업데이트
+                            // 3. RecyclerView 강제 업데이트 (더 긴 지연)
                             Handler(Looper.getMainLooper()).postDelayed({
                                 forceUIUpdate()
-                            }, 200)
+                            }, 150)
+                            
+                            // 4. 최종 확인 업데이트 (가장 긴 지연)
+                            Handler(Looper.getMainLooper()).postDelayed({
+                                Log.d("AnalyzeActivity", "Final verification update")
+                                adapter.notifyDataSetChanged()
+                                updateButtonStates()
+                            }, 300)
                         }
                         
                         Toast.makeText(this, "결과가 업데이트되었습니다.", Toast.LENGTH_SHORT).show()

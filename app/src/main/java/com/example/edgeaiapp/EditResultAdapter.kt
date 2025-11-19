@@ -21,7 +21,7 @@ class EditResultAdapter(
     private val onClassSelected: ((Int, String) -> Unit)? = null
 ) : RecyclerView.Adapter<EditResultAdapter.ViewHolder>() {
 
-    // 고정된 클래스 목록 (10개 과일/채소 - 한글)
+    // 고정된 클래스 목록 (10개 과일/채소 - 영문)
     private val fixedClasses = listOf(
         "apple",
         "banana",
@@ -73,10 +73,10 @@ class EditResultAdapter(
         val availableClasses = fixedClasses
         Log.d("EditResultAdapter", "Using fixed classes for editing: $availableClasses")
         
-        // 현재 선택된 클래스 설정 (한글)
+        // 현재 선택된 클래스 설정 (영문)
         val currentSelectedClass = when {
             result.selectedClass.isNotEmpty() && !isErrorMessage(result.selectedClass) -> {
-                // 기존 선택된 클래스가 있으면 그대로 사용 (이미 한글)
+                // 기존 선택된 클래스가 있으면 그대로 사용 (영문)
                 if (fixedClasses.contains(result.selectedClass)) {
                     result.selectedClass
                 } else {
@@ -85,11 +85,11 @@ class EditResultAdapter(
                 }
             }
             result.allClasses.isNotEmpty() -> {
-                // 분석 결과가 있는 경우, 첫 번째 결과 사용 (이미 한글)
+                // 분석 결과가 있는 경우, 첫 번째 결과 사용 (영문)
                 result.allClasses.first().className
             }
             else -> {
-                // 기본값: 첫 번째 클래스 (한글)
+                // 기본값: 첫 번째 클래스 (영문)
                 fixedClasses.first()
             }
         }
@@ -169,11 +169,11 @@ class EditResultAdapter(
             
             override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
                 if (isUserSelection && position < availableClasses.size) {
-                    val selectedClassName = availableClasses[position] // 한글 클래스명
+                    val selectedClassName = availableClasses[position] // 영문 클래스명
                     
                     Log.d("EditResultAdapter", "User selected class: $selectedClassName for item ${holder.adapterPosition}")
                     
-                    // 결과 업데이트 (한글로 저장)
+                    // 결과 업데이트 (영문으로 저장)
                     result.selectedClass = selectedClassName
                     
                     // confidence 설정
