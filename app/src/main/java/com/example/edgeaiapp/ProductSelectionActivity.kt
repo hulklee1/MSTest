@@ -42,6 +42,7 @@ class ProductSelectionActivity : AppCompatActivity() {
     private var tagName: String? = null
     private var selectedProductType: String? = null
     private var selectedProduct: SelectedProduct? = null
+    private var uniquePath: String? = null  // 6자리 랜덤 숫자, 모든 배치에서 동일
     
     private val coroutineScope = CoroutineScope(Dispatchers.Main + SupervisorJob())
     
@@ -80,6 +81,10 @@ class ProductSelectionActivity : AppCompatActivity() {
             return
         }
         authToken = token
+        
+        // uniquePath 생성 (6자리 랜덤 숫자)
+        uniquePath = generateUniquePath()
+        Log.d(TAG, "Generated uniquePath: $uniquePath")
         
         // 전달받은 데이터 처리
         loadIntentData()
@@ -335,6 +340,13 @@ class ProductSelectionActivity : AppCompatActivity() {
         }
     }
     
+    /**
+     * 6자리 랜덤 숫자로 uniquePath 생성
+     */
+    private fun generateUniquePath(): String {
+        return (100000..999999).random().toString()
+    }
+    
     private fun updateSelectedInfo() {
         layoutSelectedInfo.visibility = View.VISIBLE
         
@@ -456,7 +468,8 @@ class ProductSelectionActivity : AppCompatActivity() {
                                 total_batches = totalBatches,
                                 batch_size = imageDataList.size,
                                 total_images = totalImages
-                            )
+                            ),
+                            unique_path = uniquePath  // 모든 배치에서 동일한 uniquePath 사용
                         )
                         
                         Log.d(TAG, "배치 ${batchIndex + 1} 전송 요청 생성 완료: ${imageDataList.size}개 이미지")

@@ -6,7 +6,8 @@ data class FinalTransmissionRequest(
     val image_data_list: List<String>,  // Base64 encoded images
     val timestamp: Long = System.currentTimeMillis(),
     val device_id: String? = null,
-    val batch_info: BatchInfo? = null  // 배치 전송 정보 추가
+    val batch_info: BatchInfo? = null,  // 배치 전송 정보 추가
+    val unique_path: String? = null     // 유니크 경로 (6자리 랜덤 숫자, 모든 배치 동일)
 )
 
 // 선택된 상품 정보
